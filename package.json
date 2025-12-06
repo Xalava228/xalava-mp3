@@ -1,0 +1,17 @@
+{
+  "name": "online-radio-podcast-app",
+  "version": "1.0.0",
+  "description": "Online Radio & Podcast Web App",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build"
+  },
+  "keywords": ["radio", "podcast", "music", "streaming"],
+  "author": "",
+  "license": "MIT"
+}
+
+
