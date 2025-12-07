@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react'
+import { Component, ErrorInfo, ReactNode } from 'react'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 
 interface Props {
@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-dark-text-secondary mb-6">
               Произошла непредвиденная ошибка. Пожалуйста, попробуйте обновить страницу.
             </p>
-            {this.state.error && process.env.NODE_ENV === 'development' && (
+            {this.state.error && import.meta.env.DEV && (
               <details className="mb-6 text-left">
                 <summary className="cursor-pointer text-sm text-dark-text-secondary mb-2">
                   Детали ошибки (только в development)

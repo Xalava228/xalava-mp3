@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Upload, Music, Mic } from 'lucide-react'
+import { X, Upload, Music } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { tracksApi } from '../api/tracks'
 import { podcastsApi } from '../api/podcasts'
