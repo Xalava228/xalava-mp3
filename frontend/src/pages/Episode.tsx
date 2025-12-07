@@ -23,7 +23,7 @@ export default function Episode() {
 
   if (!episode) {
     return (
-      <div className="p-8 pb-32">
+      <div className="p-8 pb-32 max-md:p-4 max-md:pt-20">
         <div className="text-center py-12 text-dark-text-secondary">
           Загрузка...
         </div>
@@ -32,7 +32,7 @@ export default function Episode() {
   }
 
   return (
-    <div className="p-8 pb-32">
+    <div className="p-8 pb-32 max-md:p-4 max-md:pt-20">
       <Link
         to={`/podcast/${episode.podcastId}`}
         className="inline-flex items-center gap-2 text-dark-text-secondary hover:text-white mb-6 transition-colors"
@@ -42,14 +42,14 @@ export default function Episode() {
       </Link>
 
       <div className="max-w-4xl mx-auto">
-        <div className="flex gap-8 mb-8">
+        <div className="flex gap-8 mb-8 max-md:flex-col max-md:gap-4">
           <img
             src={episode.coverUrl || '/placeholder.jpg'}
             alt={episode.title}
-            className="w-64 h-64 rounded-card object-cover flex-shrink-0"
+            className="w-64 h-64 rounded-card object-cover flex-shrink-0 max-md:w-full max-md:h-auto max-md:aspect-square"
           />
           <div className="flex-1">
-            <h1 className="text-4xl font-bold mb-4">{episode.title}</h1>
+            <h1 className="text-4xl font-bold mb-4 max-md:text-2xl">{episode.title}</h1>
             <p className="text-dark-text-secondary mb-6">
               {episode.description || 'Описание отсутствует'}
             </p>

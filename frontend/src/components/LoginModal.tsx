@@ -1,10 +1,14 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { X, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { authApi } from '../api/auth'
-import { Eye, EyeOff } from 'lucide-react'
 
-export default function Login() {
+interface LoginModalProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -16,7 +20,16 @@ export default function Login() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const { setAuth } = useAuthStore()
-  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (isOpen) {
+      setError('')
+      setEmail('')
+      setPassword('')
+      setConfirmPassword('')
+      setName('')
+    }
+  }, [isOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,8 +40,9 @@ export default function Login() {
       if (isLogin) {
         const response = await authApi.login(email, password)
         setAuth(response.user, response.token)
-        navigate('/')
+        onClose()
       } else {
+        // Валидация регистрации
         if (!name || name.trim().length < 2) {
           setError('Имя должно содержать минимум 2 символа')
           setLoading(false)
@@ -49,7 +63,7 @@ export default function Login() {
 
         const response = await authApi.register(email, password, name)
         setAuth(response.user, response.token)
-        navigate('/')
+        onClose()
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Произошла ошибка')
@@ -58,34 +72,45 @@ export default function Login() {
     }
   }
 
+  if (!isOpen) return null
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-dark-bg p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-dark-card rounded-card w-full max-w-md p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-dark-text-secondary hover:text-white transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
             Xalava.mp3
-          </h1>
+          </h2>
           <p className="text-dark-text-secondary">
             {isLogin ? 'Войдите в свой аккаунт' : 'Создайте новый аккаунт'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-dark-card rounded-card p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium mb-2">Имя</label>
+              <label className="block text-sm font-medium mb-2">Имя *</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-3 bg-dark-surface border border-dark-border rounded-lg text-white focus:outline-none focus:border-white transition-colors"
                 placeholder="Ваше имя"
+                required
+                minLength={2}
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
+            <label className="block text-sm font-medium mb-2">Email *</label>
             <input
               type="email"
               value={email}
@@ -97,7 +122,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Пароль</label>
+            <label className="block text-sm font-medium mb-2">Пароль *</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -125,7 +150,7 @@ export default function Login() {
 
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium mb-2">Подтвердите пароль</label>
+              <label className="block text-sm font-medium mb-2">Подтвердите пароль *</label>
               <div className="relative">
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -175,5 +200,4 @@ export default function Login() {
     </div>
   )
 }
-
 

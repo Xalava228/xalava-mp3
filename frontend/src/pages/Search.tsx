@@ -16,7 +16,7 @@ export default function Search() {
   })
 
   return (
-    <div className="p-8 pb-32">
+    <div className="p-8 pb-32 max-md:p-4 max-md:pt-20">
       <div className="mb-8">
         <div className="relative">
           <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-dark-text-secondary" />

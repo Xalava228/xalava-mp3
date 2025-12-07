@@ -60,12 +60,18 @@ const imageFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterC
 export const uploadAudio = multer({
   storage: audioStorage,
   fileFilter: audioFilter,
-  limits: { fileSize: 100 * 1024 * 1024 } // 100MB
+  limits: { 
+    fileSize: 100 * 1024 * 1024, // 100MB
+    files: 1 // Только один файл
+  }
 })
 
 export const uploadCover = multer({
   storage: coverStorage,
   fileFilter: imageFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+  limits: { 
+    fileSize: 10 * 1024 * 1024, // 10MB
+    files: 1 // Только один файл
+  }
 })
 

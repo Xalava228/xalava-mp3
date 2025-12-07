@@ -13,7 +13,7 @@ interface PlayerState {
   audioElement: HTMLAudioElement | null
 
   setAudioElement: (element: HTMLAudioElement | null) => void
-  setCurrentTrack: (track: Track | Episode | null) => void
+  setCurrentTrack: (track: Track | Episode | null, startTime?: number) => void
   play: () => void
   pause: () => void
   togglePlay: () => void
@@ -142,7 +142,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
       }
     },
 
-    setCurrentTrack: (track) => {
+    setCurrentTrack: (track, startTime?: number) => {
       const { audioElement } = get()
       if (audioElement && track) {
         // Останавливаем текущее воспроизведение перед сменой трека
@@ -151,10 +151,20 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         audioElement.load()
         set({ 
           currentTrack: track, 
-          currentTime: 0, 
+          currentTime: startTime || 0, 
           isPlaying: false,
           duration: 0 // Сброс, загрузится автоматически
         })
+        
+        // Если указано время начала, устанавливаем его после загрузки
+        if (startTime !== undefined && startTime > 0) {
+          const handleLoadedMetadata = () => {
+            audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
+            audioElement.currentTime = startTime
+            set({ currentTime: startTime })
+          }
+          audioElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+        }
         // Не запускаем автоматически - пользователь сам нажмёт play
       } else {
         set({ currentTrack: track })

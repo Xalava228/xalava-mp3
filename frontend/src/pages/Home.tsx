@@ -7,7 +7,9 @@ import { tracksApi } from '../api/tracks'
 import { playerApi } from '../api/player'
 import Card from '../components/Card'
 import PlayButton from '../components/PlayButton'
+import ContinueButton from '../components/ContinueButton'
 import ProgressBar from '../components/ProgressBar'
+import FavoriteButton from '../components/FavoriteButton'
 import { formatTime } from '../utils/formatTime'
 import { Link } from 'react-router-dom'
 import { Play, Pause } from 'lucide-react'
@@ -52,7 +54,7 @@ export default function Home() {
   }
 
   return (
-    <div className="p-8 pb-32">
+    <div className="p-8 pb-32 max-md:p-4">
       <h1 className="text-3xl font-bold mb-8">
         {greeting()}, {user?.name || 'Гость'}
       </h1>
@@ -60,13 +62,13 @@ export default function Home() {
       {/* Now Playing */}
       {currentTrack ? (
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-4">Сейчас в эфире</h2>
-          <Card className="p-6">
-            <div className="flex items-center gap-6">
+          <h2 className="text-2xl font-bold mb-4 max-md:text-xl">Сейчас в эфире</h2>
+          <Card className="p-6 max-md:p-4">
+            <div className="flex items-center gap-6 max-md:gap-4">
               <img
                 src={('coverUrl' in currentTrack && currentTrack.coverUrl) ? currentTrack.coverUrl : '/placeholder.jpg'}
                 alt={currentTrack.title}
-                className="w-32 h-32 rounded-card object-cover"
+                className="w-32 h-32 rounded-card object-cover max-md:w-24 max-md:h-24"
               />
               <div className="flex-1">
                 <h3 className="text-xl font-semibold mb-2">
@@ -149,24 +151,59 @@ export default function Home() {
       {/* Continue Listening */}
       {history && history.length > 0 && (
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-4">Продолжить</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {history.slice(0, 5).map((item) => (
-              <Card key={item.id} className="group relative">
-                <div className="aspect-square rounded-card overflow-hidden mb-3 bg-dark-hover">
-                  <img
-                    src="/placeholder.jpg"
-                    alt="Cover"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <h3 className="font-semibold mb-1 truncate">Эпизод</h3>
-                <p className="text-sm text-dark-text-secondary mb-2 truncate">
-                  Подкаст
-                </p>
-                <ProgressBar progress={(item.progressSeconds / 3600) * 100} />
-              </Card>
-            ))}
+          <h2 className="text-2xl font-bold mb-4 max-md:text-xl">Продолжить</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-md:gap-2">
+            {history
+              .filter((item: any) => {
+                const content = item.track || item.episode
+                // Показываем только те, где есть прогресс (больше 5 секунд) и не закончено (меньше 95%)
+                if (!content) return false
+                const progressPercent = content.duration > 0 
+                  ? (item.progressSeconds / content.duration) * 100 
+                  : 0
+                return item.progressSeconds > 5 && progressPercent < 95
+              })
+              .slice(0, 10)
+              .map((item: any) => {
+                const content = item.track || item.episode
+                if (!content) return null
+                
+                const progressPercent = content.duration > 0 
+                  ? (item.progressSeconds / content.duration) * 100 
+                  : 0
+                
+                return (
+                  <Card key={item.id} className="group relative">
+                    <div className="aspect-square rounded-card overflow-hidden mb-3 bg-dark-hover relative">
+                      <img
+                        src={content.coverUrl || '/placeholder.jpg'}
+                        alt={content.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <ContinueButton 
+                          historyItem={item}
+                          queue={item.track ? tracks || [] : []} 
+                          className="scale-75" 
+                        />
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
+                        <div
+                          className="h-full bg-gradient-to-r from-dark-accent to-dark-accent-secondary"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                    <h3 className="font-semibold mb-1 truncate">{content.title}</h3>
+                    <p className="text-sm text-dark-text-secondary mb-1 truncate">
+                      {item.track ? content.artist : 'Подкаст'}
+                    </p>
+                    <p className="text-xs text-dark-text-secondary">
+                      {formatTime(item.progressSeconds)} / {formatTime(content.duration)}
+                    </p>
+                  </Card>
+                )
+              })}
           </div>
         </section>
       )}
@@ -174,16 +211,19 @@ export default function Home() {
       {/* For You Today - Tracks */}
       {recommendations && recommendations.tracks && recommendations.tracks.length > 0 && (
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-4">Для вас сегодня</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <h2 className="text-2xl font-bold mb-4 max-md:text-xl">Для вас сегодня</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-md:gap-2">
             {recommendations.tracks.slice(0, 10).map((track) => (
               <Card key={track.id} className="group relative">
-                <div className="aspect-square rounded-card overflow-hidden mb-3 bg-dark-hover">
+                <div className="aspect-square rounded-card overflow-hidden mb-3 bg-dark-hover relative">
                   <img
                     src={track.coverUrl}
                     alt={track.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
+                  <div className="absolute top-2 right-2 z-10">
+                    <FavoriteButton trackId={track.id} />
+                  </div>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <PlayButton item={track} queue={recommendations.tracks} className="scale-75" />
                   </div>
@@ -204,29 +244,34 @@ export default function Home() {
       {/* For You Today - Podcasts (fallback) */}
       {recommendations && (!recommendations.tracks || recommendations.tracks.length === 0) && recommendations.podcasts && (
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-4">Для вас сегодня</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <h2 className="text-2xl font-bold mb-4 max-md:text-xl">Для вас сегодня</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-md:gap-2">
             {recommendations.podcasts.slice(0, 10).map((podcast) => (
-              <Link key={podcast.id} to={`/podcast/${podcast.id}`}>
-                <Card className="group relative">
-                  <div className="aspect-square rounded-card overflow-hidden mb-3 bg-dark-hover">
-                    <img
-                      src={podcast.coverUrl}
-                      alt={podcast.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      {recommendations.episodes[0] && (
-                        <PlayButton item={recommendations.episodes[0]} className="scale-75" />
-                      )}
+              <div key={podcast.id} className="group relative">
+                <Link to={`/podcast/${podcast.id}`}>
+                  <Card className="group relative">
+                    <div className="aspect-square rounded-card overflow-hidden mb-3 bg-dark-hover relative">
+                      <img
+                        src={podcast.coverUrl}
+                        alt={podcast.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute top-2 right-2 z-10" onClick={(e) => e.preventDefault()}>
+                        <FavoriteButton podcastId={podcast.id} />
+                      </div>
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        {recommendations.episodes[0] && (
+                          <PlayButton item={recommendations.episodes[0]} className="scale-75" />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="font-semibold mb-1 truncate">{podcast.title}</h3>
-                  <p className="text-sm text-dark-text-secondary truncate">
-                    {podcast.author}
-                  </p>
-                </Card>
-              </Link>
+                    <h3 className="font-semibold mb-1 truncate">{podcast.title}</h3>
+                    <p className="text-sm text-dark-text-secondary truncate">
+                      {podcast.author}
+                    </p>
+                  </Card>
+                </Link>
+              </div>
             ))}
           </div>
         </section>
@@ -235,16 +280,19 @@ export default function Home() {
       {/* Popular Tracks */}
       {tracks && tracks.length > 0 && (
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-4">Популярные треки</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <h2 className="text-2xl font-bold mb-4 max-md:text-xl">Популярные треки</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-md:gap-2">
             {tracks.slice(0, 10).map((track) => (
               <Card key={track.id} className="group relative">
-                <div className="aspect-square rounded-card overflow-hidden mb-3 bg-dark-hover">
+                <div className="aspect-square rounded-card overflow-hidden mb-3 bg-dark-hover relative">
                   <img
                     src={track.coverUrl}
                     alt={track.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
+                  <div className="absolute top-2 right-2 z-10">
+                    <FavoriteButton trackId={track.id} />
+                  </div>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <PlayButton item={track} queue={tracks} className="scale-75" />
                   </div>
@@ -265,29 +313,34 @@ export default function Home() {
       {/* Popular Podcasts */}
       {podcasts && (
         <section>
-          <h2 className="text-2xl font-bold mb-4">Популярные подкасты</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <h2 className="text-2xl font-bold mb-4 max-md:text-xl">Популярные подкасты</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 max-md:gap-2">
             {podcasts.slice(0, 10).map((podcast) => (
-              <Link key={podcast.id} to={`/podcast/${podcast.id}`}>
-                <Card className="group relative">
-                  <div className="aspect-square rounded-card overflow-hidden mb-3 bg-dark-hover">
-                    <img
-                      src={podcast.coverUrl}
-                      alt={podcast.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      {recommendations?.episodes?.[0] && (
-                        <PlayButton item={recommendations.episodes[0]} className="scale-75" />
-                      )}
+              <div key={podcast.id} className="group relative">
+                <Link to={`/podcast/${podcast.id}`}>
+                  <Card className="group relative">
+                    <div className="aspect-square rounded-card overflow-hidden mb-3 bg-dark-hover relative">
+                      <img
+                        src={podcast.coverUrl}
+                        alt={podcast.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute top-2 right-2 z-10" onClick={(e) => e.preventDefault()}>
+                        <FavoriteButton podcastId={podcast.id} />
+                      </div>
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        {recommendations?.episodes?.[0] && (
+                          <PlayButton item={recommendations.episodes[0]} className="scale-75" />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="font-semibold mb-1 truncate">{podcast.title}</h3>
-                  <p className="text-sm text-dark-text-secondary truncate">
-                    {podcast.author}
-                  </p>
-                </Card>
-              </Link>
+                    <h3 className="font-semibold mb-1 truncate">{podcast.title}</h3>
+                    <p className="text-sm text-dark-text-secondary truncate">
+                      {podcast.author}
+                    </p>
+                  </Card>
+                </Link>
+              </div>
             ))}
           </div>
         </section>

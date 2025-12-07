@@ -14,6 +14,7 @@ export interface Podcast {
   author: string
   genres: string[]
   createdAt: string
+  uploadedBy?: string // ID пользователя, который загрузил подкаст
 }
 
 export interface Episode {
@@ -32,10 +33,12 @@ export interface Track {
   id: string
   title: string
   artist: string
+  description?: string
   coverUrl: string
   audioUrl: string
   duration: number
   createdAt: string
+  uploadedBy?: string // ID пользователя, который загрузил трек
 }
 
 export interface ListeningHistory {
@@ -45,5 +48,16 @@ export interface ListeningHistory {
   trackId?: string
   progressSeconds: number
   updatedAt: string
+  track?: Track
+  episode?: Episode
+}
+
+export interface Favorite {
+  id: string
+  userId: string
+  trackId?: string
+  episodeId?: string
+  podcastId?: string
+  createdAt: string
 }
 

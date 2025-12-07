@@ -1,6 +1,6 @@
 import fs from 'fs/promises'
 import path from 'path'
-import { User, Podcast, Episode, Track, ListeningHistory } from '../types'
+import { User, Podcast, Episode, Track, ListeningHistory, Favorite } from '../types'
 
 // Use process.cwd() to get project root, works in both dev and production
 const DATA_DIR = path.join(process.cwd(), 'backend', 'data')
@@ -35,6 +35,16 @@ async function readFile<T>(filename: string): Promise<T[]> {
 async function writeFile<T>(filename: string, data: T[]): Promise<void> {
   await ensureDataDir()
   const filePath = getFilePath(filename)
+  // Создаём резервную копию перед записью (только для критических файлов)
+  try {
+    const existingData = await fs.readFile(filePath, 'utf-8').catch(() => null)
+    if (existingData) {
+      const backupPath = filePath + '.backup'
+      await fs.writeFile(backupPath, existingData, 'utf-8')
+    }
+  } catch (error) {
+    // Игнорируем ошибки резервного копирования
+  }
   await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8')
 }
 
@@ -82,6 +92,14 @@ export const storage = {
       await writeFile('podcasts.json', podcasts)
       return podcast
     },
+    async update(id: string, updates: Partial<Podcast>): Promise<Podcast | null> {
+      const podcasts = await readFile<Podcast>('podcasts.json')
+      const index = podcasts.findIndex(p => p.id === id)
+      if (index === -1) return null
+      podcasts[index] = { ...podcasts[index], ...updates }
+      await writeFile('podcasts.json', podcasts)
+      return podcasts[index]
+    },
     async delete(id: string): Promise<boolean> {
       const podcasts = await readFile<Podcast>('podcasts.json')
       const index = podcasts.findIndex(p => p.id === id)
@@ -125,6 +143,14 @@ export const storage = {
       tracks.push(track)
       await writeFile('tracks.json', tracks)
       return track
+    },
+    async update(id: string, updates: Partial<Track>): Promise<Track | null> {
+      const tracks = await readFile<Track>('tracks.json')
+      const index = tracks.findIndex(t => t.id === id)
+      if (index === -1) return null
+      tracks[index] = { ...tracks[index], ...updates }
+      await writeFile('tracks.json', tracks)
+      return tracks[index]
     },
   },
 
@@ -173,6 +199,39 @@ export const storage = {
       } else {
         return await this.create(history)
       }
+    },
+  },
+
+  favorites: {
+    async getAll(): Promise<Favorite[]> {
+      return readFile<Favorite>('favorites.json')
+    },
+    async getByUserId(userId: string): Promise<Favorite[]> {
+      const favorites = await readFile<Favorite>('favorites.json')
+      return favorites.filter(f => f.userId === userId)
+    },
+    async create(favorite: Favorite): Promise<Favorite> {
+      const favorites = await readFile<Favorite>('favorites.json')
+      favorites.push(favorite)
+      await writeFile('favorites.json', favorites)
+      return favorite
+    },
+    async delete(id: string): Promise<boolean> {
+      const favorites = await readFile<Favorite>('favorites.json')
+      const index = favorites.findIndex(f => f.id === id)
+      if (index === -1) return false
+      favorites.splice(index, 1)
+      await writeFile('favorites.json', favorites)
+      return true
+    },
+    async findByUserAndContent(userId: string, trackId?: string, episodeId?: string, podcastId?: string): Promise<Favorite | null> {
+      const favorites = await readFile<Favorite>('favorites.json')
+      return favorites.find(f => 
+        f.userId === userId && 
+        (trackId ? f.trackId === trackId : true) &&
+        (episodeId ? f.episodeId === episodeId : true) &&
+        (podcastId ? f.podcastId === podcastId : true)
+      ) || null
     },
   },
 }

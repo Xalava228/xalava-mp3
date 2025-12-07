@@ -23,21 +23,21 @@ export default function BottomPlayer() {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
-    <div className="fixed bottom-0 left-64 right-0 h-24 bg-dark-card/95 backdrop-blur-xl border-t border-dark-border shadow-2xl px-6 flex items-center gap-6 z-40">
+    <div className="fixed bottom-0 left-64 right-0 h-24 bg-dark-card/95 backdrop-blur-xl border-t border-dark-border shadow-2xl px-6 flex items-center gap-6 z-40 max-md:left-0 max-md:px-4">
       {/* Track Info */}
-      <div className="flex items-center gap-4 min-w-[200px] max-w-[200px]">
+      <div className="flex items-center gap-4 min-w-[200px] max-w-[200px] max-md:min-w-[150px] max-md:max-w-[150px]">
         {('coverUrl' in currentTrack && currentTrack.coverUrl) ? (
           <img
             src={currentTrack.coverUrl}
             alt={currentTrack.title}
-            className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+            className="w-14 h-14 rounded-lg object-cover flex-shrink-0 max-md:w-12 max-md:h-12"
           />
         ) : (
-          <div className="w-14 h-14 rounded-lg bg-dark-hover flex items-center justify-center flex-shrink-0">
-            <span className="text-2xl">🎵</span>
+          <div className="w-14 h-14 rounded-lg bg-dark-hover flex items-center justify-center flex-shrink-0 max-md:w-12 max-md:h-12">
+            <span className="text-2xl max-md:text-xl">🎵</span>
           </div>
         )}
-        <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="min-w-0 flex-1 overflow-hidden max-md:hidden">
           <p className="text-sm font-medium text-white truncate">
             {currentTrack.title}
           </p>
@@ -100,7 +100,7 @@ export default function BottomPlayer() {
       </div>
 
       {/* Volume & Queue */}
-      <div className="flex items-center gap-4 min-w-[200px] justify-end">
+      <div className="flex items-center gap-4 min-w-[200px] justify-end max-md:min-w-0 max-md:hidden">
         <button
           className="p-2 hover:bg-dark-hover rounded-full transition-colors"
           aria-label="Queue"

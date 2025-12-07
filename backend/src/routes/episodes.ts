@@ -6,6 +6,7 @@ import { storage } from '../db/storage'
 import { uploadAudio, uploadCover } from '../middleware/upload'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../middleware/rateLimit'
+import { validateTitle, validateDescription, sanitizeString } from '../utils/validation'
 
 const router = express.Router()
 
@@ -86,11 +87,28 @@ router.post(
         return res.status(400).json({ message: 'ID подкаста и название эпизода обязательны' })
       }
 
+      // Валидация
+      if (!validateTitle(title)) {
+        return res.status(400).json({ message: 'Название должно быть от 1 до 200 символов' })
+      }
+
+      if (description && !validateDescription(description)) {
+        return res.status(400).json({ message: 'Описание не должно превышать 2000 символов' })
+      }
+
       // Проверяем существование подкаста
       const podcast = await storage.podcasts.getById(podcastId)
       if (!podcast) {
         return res.status(404).json({ message: 'Подкаст не найден' })
       }
+
+      // Проверяем права (только владелец подкаста может добавлять эпизоды)
+      if (podcast.uploadedBy && podcast.uploadedBy !== req.userId) {
+        return res.status(403).json({ message: 'Вы можете добавлять эпизоды только в свои подкасты' })
+      }
+
+      const sanitizedTitle = sanitizeString(title, 200)
+      const sanitizedDescription = description ? sanitizeString(description, 2000) : ''
 
       const files = (req as any).files as { [fieldname: string]: Express.Multer.File[] }
       
@@ -116,8 +134,8 @@ router.post(
       const episode = {
         id: uuidv4(),
         podcastId,
-        title,
-        description: description || '',
+        title: sanitizedTitle,
+        description: sanitizedDescription,
         audioUrl,
         duration: episodeDuration,
         coverUrl,

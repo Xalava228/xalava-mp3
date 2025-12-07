@@ -21,6 +21,22 @@ export const podcastsApi = {
     const { data } = await apiClient.get(`/episodes/${episodeId}`)
     return data
   },
+
+  update: async (id: string, updates: { title?: string; description?: string; author?: string; genres?: string; cover?: File }): Promise<Podcast> => {
+    const formData = new FormData()
+    if (updates.title) formData.append('title', updates.title)
+    if (updates.description !== undefined) formData.append('description', updates.description)
+    if (updates.author) formData.append('author', updates.author)
+    if (updates.genres) formData.append('genres', updates.genres)
+    if (updates.cover) formData.append('cover', updates.cover)
+
+    const { data } = await apiClient.put(`/podcasts/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return data.podcast
+  },
 }
 
 

@@ -1,5 +1,6 @@
 import express, { Response } from 'express'
 import { storage } from '../db/storage'
+import { sanitizeString } from '../utils/validation'
 
 const router = express.Router()
 
@@ -15,7 +16,17 @@ router.get('/', async (req, res: Response) => {
       })
     }
 
-    const searchLower = q.toLowerCase()
+    // Санитизация поискового запроса (максимум 100 символов)
+    const sanitizedQuery = sanitizeString(q, 100)
+    if (sanitizedQuery.length === 0) {
+      return res.json({
+        tracks: [],
+        podcasts: [],
+        episodes: [],
+      })
+    }
+
+    const searchLower = sanitizedQuery.toLowerCase()
 
     const [allTracks, allPodcasts, allEpisodes] = await Promise.all([
       storage.tracks.getAll(),

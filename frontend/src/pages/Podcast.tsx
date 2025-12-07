@@ -29,7 +29,7 @@ export default function Podcast() {
 
   if (!podcast) {
     return (
-      <div className="p-8 pb-32">
+      <div className="p-8 pb-32 max-md:p-4 max-md:pt-20">
         <div className="text-center py-12 text-dark-text-secondary">
           Загрузка...
         </div>
@@ -38,7 +38,7 @@ export default function Podcast() {
   }
 
   return (
-    <div className="p-8 pb-32">
+    <div className="p-8 pb-32 max-md:p-4 max-md:pt-20">
       <Link
         to="/"
         className="inline-flex items-center gap-2 text-dark-text-secondary hover:text-white mb-6 transition-colors"
@@ -47,14 +47,14 @@ export default function Podcast() {
         Назад
       </Link>
 
-      <div className="flex gap-8 mb-8">
+      <div className="flex gap-8 mb-8 max-md:flex-col max-md:gap-4">
         <img
           src={podcast.coverUrl}
           alt={podcast.title}
-          className="w-64 h-64 rounded-card object-cover flex-shrink-0"
+          className="w-64 h-64 rounded-card object-cover flex-shrink-0 max-md:w-full max-md:h-auto max-md:aspect-square"
         />
         <div className="flex-1">
-          <h1 className="text-4xl font-bold mb-4">{podcast.title}</h1>
+          <h1 className="text-4xl font-bold mb-4 max-md:text-2xl">{podcast.title}</h1>
           <p className="text-lg text-dark-text-secondary mb-4">
             {podcast.author}
           </p>

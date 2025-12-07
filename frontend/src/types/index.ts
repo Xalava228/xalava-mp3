@@ -13,6 +13,7 @@ export interface Podcast {
   author: string
   genres: string[]
   createdAt: string
+  uploadedBy?: string
 }
 
 export interface Episode {
@@ -24,15 +25,19 @@ export interface Episode {
   duration: number
   coverUrl?: string
   publishedAt: string
+  createdAt?: string
 }
 
 export interface Track {
   id: string
   title: string
   artist: string
+  description?: string
   coverUrl: string
   audioUrl: string
   duration: number
+  createdAt?: string
+  uploadedBy?: string
 }
 
 export interface ListeningHistory {
@@ -42,6 +47,8 @@ export interface ListeningHistory {
   trackId?: string
   progressSeconds: number
   updatedAt: string
+  track?: Track
+  episode?: Episode
 }
 
 export interface Playlist {
@@ -63,6 +70,18 @@ export interface SearchResults {
   tracks: Track[]
   podcasts: Podcast[]
   episodes: Episode[]
+}
+
+export interface Favorite {
+  id: string
+  userId: string
+  trackId?: string
+  episodeId?: string
+  podcastId?: string
+  createdAt: string
+  track?: Track
+  episode?: Episode
+  podcast?: Podcast
 }
 
 

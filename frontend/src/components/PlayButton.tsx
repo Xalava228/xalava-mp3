@@ -13,6 +13,7 @@ export default function PlayButton({ item, className = '', queue }: PlayButtonPr
 
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation()
+    e.preventDefault() // Предотвращаем переход по ссылке
     
     // Если передана очередь, используем её, иначе создаём очередь из одного элемента
     if (queue && queue.length > 0) {

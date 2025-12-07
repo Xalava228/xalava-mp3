@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import helmet from 'helmet'
+import multer from 'multer'
 import fs from 'fs'
 import path from 'path'
 import authRoutes from './routes/auth'
@@ -11,6 +12,7 @@ import tracksRoutes from './routes/tracks'
 import searchRoutes from './routes/search'
 import recommendationsRoutes from './routes/recommendations'
 import playerRoutes from './routes/player'
+import favoritesRoutes from './routes/favorites'
 
 dotenv.config()
 
@@ -26,8 +28,13 @@ if (NODE_ENV === 'production') {
 }
 
 // Middleware
+// Нормализуем FRONTEND_URL - убираем слеш в конце если есть
+const frontendUrl = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.replace(/\/$/, '') // Убираем слеш в конце
+  : (NODE_ENV === 'production' ? '*' : 'http://localhost:3000')
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || (NODE_ENV === 'production' ? false : 'http://localhost:3000'),
+  origin: frontendUrl === '*' ? '*' : [frontendUrl, `${frontendUrl}/`], // Разрешаем оба варианта (с слешем и без)
   credentials: true,
   optionsSuccessStatus: 200
 }
@@ -62,6 +69,7 @@ app.use('/api/tracks', tracksRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/recommendations', recommendationsRoutes)
 app.use('/api/player', playerRoutes)
+app.use('/api/favorites', favoritesRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -70,7 +78,38 @@ app.get('/api/health', (req, res) => {
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Ошибка сервера:', err)
+  // Multer errors
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'Файл слишком большой' })
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ message: 'Слишком много файлов' })
+    }
+    return res.status(400).json({ message: err.message || 'Ошибка загрузки файла' })
+  }
+
+  // Validation errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ message: err.message || 'Ошибка валидации' })
+  }
+
+  // JWT errors
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({ message: 'Недействительный токен' })
+  }
+
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({ message: 'Токен истёк' })
+  }
+
+  console.error('Ошибка сервера:', {
+    message: err.message,
+    stack: NODE_ENV === 'development' ? err.stack : undefined,
+    url: req.url,
+    method: req.method
+  })
+
   res.status(err.status || 500).json({
     message: NODE_ENV === 'production' 
       ? 'Внутренняя ошибка сервера' 

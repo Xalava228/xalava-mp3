@@ -15,6 +15,7 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
   // Track fields
   const [title, setTitle] = useState('')
   const [artist, setArtist] = useState('')
+  const [description, setDescription] = useState('')
   const [audioFile, setAudioFile] = useState<File | null>(null)
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [duration, setDuration] = useState('')
@@ -90,6 +91,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         const formData = new FormData()
         formData.append('title', title)
         formData.append('artist', artist)
+        if (description) {
+          formData.append('description', description)
+        }
         formData.append('audio', audioFile)
         if (coverFile) {
           formData.append('cover', coverFile)
@@ -345,6 +349,17 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
                   className="w-full px-4 py-2 bg-dark-surface border border-dark-border rounded-lg text-white focus:outline-none focus:border-white transition-colors"
                   placeholder="Введите имя исполнителя"
                   required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Описание (опционально)</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-4 py-2 bg-dark-surface border border-dark-border rounded-lg text-white focus:outline-none focus:border-white transition-colors resize-none"
+                  placeholder="Введите описание трека"
+                  rows={3}
                 />
               </div>
 

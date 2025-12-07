@@ -30,12 +30,34 @@ router.post('/progress', authMiddleware, async (req: AuthRequest, res: Response)
   }
 })
 
-// Get listening history
+// Get listening history with full track/episode data
 router.get('/history', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const history = await storage.listeningHistory.getByUserId(req.userId!)
     history.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    res.json(history.slice(0, 50))
+    
+    // Загружаем полные данные треков и эпизодов
+    const historyWithData = await Promise.all(
+      history.slice(0, 50).map(async (item) => {
+        let track = null
+        let episode = null
+        
+        if (item.trackId) {
+          track = await storage.tracks.getById(item.trackId)
+        }
+        if (item.episodeId) {
+          episode = await storage.episodes.getById(item.episodeId)
+        }
+        
+        return {
+          ...item,
+          track,
+          episode,
+        }
+      })
+    )
+    
+    res.json(historyWithData)
   } catch (error: any) {
     res.status(500).json({ message: error.message })
   }
