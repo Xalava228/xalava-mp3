@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Search, Heart, Upload, User, X, Menu, LogIn, UserPlus, Music2 } from 'lucide-react'
+import { Home, Search, Heart, Upload, X, Menu, LogIn, UserPlus, Music2 } from 'lucide-react'
 import clsx from 'clsx'
 import UploadModal from './UploadModal'
 import { useAuthStore } from '../store/authStore'

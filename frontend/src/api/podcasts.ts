@@ -37,6 +37,19 @@ export const podcastsApi = {
     })
     return data.podcast
   },
+
+  create: async (payload: { title: string; author: string; description?: string; coverFile?: File }): Promise<Podcast> => {
+    const formData = new FormData()
+    formData.append('title', payload.title)
+    formData.append('author', payload.author)
+    if (payload.description !== undefined) formData.append('description', payload.description)
+    if (payload.coverFile) formData.append('cover', payload.coverFile)
+
+    const { data } = await apiClient.post('/podcasts', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.podcast || data
+  },
 }
 
 

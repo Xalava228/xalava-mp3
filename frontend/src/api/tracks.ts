@@ -31,6 +31,20 @@ export const tracksApi = {
     })
     return data.track
   },
+
+  upload: async (payload: { title: string; artist: string; description?: string; audioFile: File; coverFile?: File }): Promise<Track> => {
+    const formData = new FormData()
+    formData.append('title', payload.title)
+    formData.append('artist', payload.artist)
+    if (payload.description !== undefined) formData.append('description', payload.description)
+    formData.append('audio', payload.audioFile)
+    if (payload.coverFile) formData.append('cover', payload.coverFile)
+
+    const { data } = await apiClient.post('/tracks/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.track || data
+  },
 }
 
 
