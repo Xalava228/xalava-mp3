@@ -1,7 +1,7 @@
+import { useEffect, useState } from 'react'
 import { usePlayerStore } from '../store/playerStore'
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, Shuffle, Repeat, Repeat1 } from 'lucide-react'
 import { formatTime } from '../utils/formatTime'
-import { useState } from 'react'
 
 export default function BottomPlayer() {
   const {
@@ -15,10 +15,24 @@ export default function BottomPlayer() {
     previous,
     seek,
     setVolume,
+    openNowPlaying,
+    isShuffle,
+    repeatMode,
+    toggleShuffle,
+    cycleRepeat,
   } = usePlayerStore()
   
   const [isMuted, setIsMuted] = useState(false)
   const [prevVolume, setPrevVolume] = useState(volume)
+
+  // Хуки должны вызываться всегда, поэтому эффект выше условного возврата
+  useEffect(() => {
+    if (currentTrack) {
+      document.title = `${isPlaying ? '▶︎' : '❚❚'} ${currentTrack.title} — Xalava.music`
+    } else {
+      document.title = 'Xalava.music'
+    }
+  }, [currentTrack, isPlaying])
 
   if (!currentTrack) {
     return null
@@ -41,15 +55,18 @@ export default function BottomPlayer() {
     <div className="fixed bottom-0 left-60 right-0 h-20 glass border-t border-dark-border/50 px-4 flex items-center z-40 max-md:left-0">
       {/* Track Info */}
       <div className="flex items-center gap-3 w-[30%] min-w-0 max-md:w-auto">
-        <div className="relative group">
+        <button 
+          onClick={openNowPlaying}
+          className="relative group cursor-pointer"
+        >
           {('coverUrl' in currentTrack && currentTrack.coverUrl) ? (
             <img
               src={currentTrack.coverUrl}
               alt={currentTrack.title}
-              className="w-12 h-12 rounded-lg object-cover shadow-lg"
+              className="w-12 h-12 rounded-lg object-cover shadow-lg hover:scale-105 transition-transform"
             />
           ) : (
-            <div className="w-12 h-12 rounded-lg bg-gradient-accent flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 rounded-lg bg-gradient-accent flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
               <span className="text-lg">🎵</span>
             </div>
           )}
@@ -59,15 +76,18 @@ export default function BottomPlayer() {
               <div className="w-1.5 h-1.5 bg-white rounded-full" />
             </div>
           )}
-        </div>
-        <div className="min-w-0 max-md:hidden">
+        </button>
+        <button 
+          onClick={openNowPlaying}
+          className="min-w-0 max-md:hidden text-left cursor-pointer hover:opacity-80 transition-opacity"
+        >
           <p className="text-sm font-medium text-white truncate">
             {currentTrack.title}
           </p>
           <p className="text-xs text-dark-text-secondary truncate">
             {'artist' in currentTrack ? currentTrack.artist : 'podcastId' in currentTrack ? 'Подкаст' : 'Автор'}
           </p>
-        </div>
+        </button>
         <button className="p-1.5 text-dark-text-muted hover:text-dark-accent transition-colors max-md:hidden">
           <Heart className="w-4 h-4" />
         </button>
@@ -75,7 +95,15 @@ export default function BottomPlayer() {
 
       {/* Player Controls */}
       <div className="flex-1 flex flex-col items-center gap-1.5 max-w-xl mx-auto">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggleShuffle}
+            className={`p-1.5 transition-colors ${isShuffle ? 'text-dark-accent' : 'text-dark-text-secondary hover:text-white'}`}
+            aria-label="Shuffle"
+            title="Перемешать"
+          >
+            <Shuffle className="w-5 h-5" />
+          </button>
           <button
             onClick={previous}
             className="p-1.5 text-dark-text-secondary hover:text-white transition-colors"
@@ -100,6 +128,18 @@ export default function BottomPlayer() {
             aria-label="Next"
           >
             <SkipForward className="w-5 h-5" />
+          </button>
+          <button
+            onClick={cycleRepeat}
+            className={`p-1.5 transition-colors ${repeatMode !== 'off' ? 'text-dark-accent' : 'text-dark-text-secondary hover:text-white'}`}
+            aria-label="Repeat"
+            title={repeatMode === 'off' ? 'Повтор выкл' : repeatMode === 'all' ? 'Повтор очереди' : 'Повтор трека'}
+          >
+            {repeatMode === 'one' ? (
+              <Repeat1 className="w-5 h-5" />
+            ) : (
+              <Repeat className="w-5 h-5" />
+            )}
           </button>
         </div>
         

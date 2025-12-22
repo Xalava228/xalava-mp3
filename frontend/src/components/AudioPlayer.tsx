@@ -59,9 +59,39 @@ export default function AudioPlayer() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && e.target === document.body) {
-        e.preventDefault()
-        usePlayerStore.getState().togglePlay()
+      const target = e.target as HTMLElement | null
+      const isInput =
+        target &&
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) ||
+        (target?.getAttribute('contenteditable') === 'true')
+
+      if (isInput) return
+
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault()
+          usePlayerStore.getState().togglePlay()
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          usePlayerStore.getState().seek(usePlayerStore.getState().currentTime + 10)
+          break
+        case 'ArrowLeft':
+          e.preventDefault()
+          usePlayerStore.getState().seek(Math.max(0, usePlayerStore.getState().currentTime - 10))
+          break
+        case 'KeyN':
+          usePlayerStore.getState().next()
+          break
+        case 'KeyP':
+          usePlayerStore.getState().previous()
+          break
+        case 'KeyS':
+          usePlayerStore.getState().toggleShuffle()
+          break
+        case 'KeyR':
+          usePlayerStore.getState().cycleRepeat()
+          break
       }
     }
 

@@ -1,8 +1,8 @@
-/** @type {import('tailwindcss').Config} */
+﻿/** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
@@ -16,17 +16,16 @@ export default {
           text: '#f5f5f7',
           'text-secondary': '#9898a6',
           'text-muted': '#5a5a6e',
-          // Уникальный тёплый акцент - коралловый/персиковый
-          accent: '#ff6b6b',
-          'accent-hover': '#ff5252',
-          'accent-secondary': '#ffa07a',
-          'accent-glow': 'rgba(255, 107, 107, 0.3)',
+          accent: '#a855f7',
+          'accent-hover': '#9333ea',
+          'accent-secondary': '#ec4899',
+          'accent-glow': 'rgba(168, 85, 247, 0.3)',
         },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(ellipse at top, #1a1a24 0%, #0a0a0f 100%)',
-        'gradient-accent': 'linear-gradient(135deg, #ff6b6b 0%, #ffa07a 100%)',
-        'gradient-card': 'linear-gradient(180deg, rgba(255,107,107,0.05) 0%, transparent 100%)',
+        'gradient-accent': 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+        'gradient-card': 'linear-gradient(180deg, rgba(168,85,247,0.05) 0%, transparent 100%)',
       },
       borderRadius: {
         'card': '12px',
@@ -36,8 +35,8 @@ export default {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(255, 107, 107, 0.15)',
-        'glow-lg': '0 0 40px rgba(255, 107, 107, 0.2)',
+        'glow': '0 0 20px rgba(168, 85, 247, 0.15)',
+        'glow-lg': '0 0 40px rgba(168, 85, 247, 0.2)',
       },
     },
   },

@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { Episode, Track } from '../types'
 import { playerApi } from '../api/player'
 
+type RepeatMode = 'off' | 'all' | 'one'
+
 interface PlayerState {
   currentTrack: Track | Episode | null
   isPlaying: boolean
@@ -11,6 +13,12 @@ interface PlayerState {
   queue: (Track | Episode)[]
   currentIndex: number
   audioElement: HTMLAudioElement | null
+  isNowPlayingOpen: boolean
+  isShuffle: boolean
+  repeatMode: RepeatMode
+  playbackRate: number
+  sleepTimerMinutes: number | null
+  sleepTimerId: ReturnType<typeof setTimeout> | null
 
   setAudioElement: (element: HTMLAudioElement | null) => void
   setCurrentTrack: (track: Track | Episode | null, startTime?: number) => void
@@ -26,10 +34,96 @@ interface PlayerState {
   seek: (time: number) => void
   saveProgress: () => void
   stop: () => void
+  openNowPlaying: () => void
+  closeNowPlaying: () => void
+  toggleShuffle: () => void
+  cycleRepeat: () => void
+  setPlaybackRate: (rate: number) => void
+  setSleepTimer: (minutes: number | null) => void
+  clearSleepTimer: () => void
+}
+
+const loadSavedVolume = () => {
+  if (typeof window === 'undefined') return 1
+  const stored = parseFloat(localStorage.getItem('playerVolume') || '')
+  if (Number.isNaN(stored)) return 1
+  return Math.min(1, Math.max(0, stored))
+}
+
+const loadSavedShuffle = () => {
+  if (typeof window === 'undefined') return false
+  return localStorage.getItem('playerShuffle') === 'true'
+}
+
+const loadSavedRepeat = (): RepeatMode => {
+  if (typeof window === 'undefined') return 'off'
+  const value = localStorage.getItem('playerRepeat') as RepeatMode | null
+  return value === 'all' || value === 'one' ? value : 'off'
+}
+
+const loadSavedPlaybackRate = () => {
+  if (typeof window === 'undefined') return 1
+  const stored = parseFloat(localStorage.getItem('playerPlaybackRate') || '')
+  if (Number.isNaN(stored)) return 1
+  return Math.min(2, Math.max(0.5, stored))
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => {
   let progressInterval: ReturnType<typeof setInterval> | null = null
+  const getRandomIndex = (length: number, currentIndex: number) => {
+    if (length <= 1) return currentIndex
+    let newIndex = currentIndex
+    while (newIndex === currentIndex) {
+      newIndex = Math.floor(Math.random() * length)
+    }
+    return newIndex
+  }
+
+  const playTrackAtIndex = (index: number) => {
+    const { queue, audioElement } = get()
+    const nextTrack = queue[index]
+    if (!audioElement || !nextTrack) return
+
+    // Останавливаем текущее воспроизведение
+    audioElement.pause()
+    stopProgressTracking()
+
+    // Устанавливаем новый трек
+    audioElement.src = nextTrack.audioUrl
+    audioElement.load()
+
+    // Обновляем состояние
+    set({ 
+      currentIndex: index,
+      currentTrack: nextTrack, 
+      currentTime: 0, 
+      isPlaying: false, // Временно false
+      duration: 0
+    })
+
+    const handleCanPlay = () => {
+      audioElement.removeEventListener('canplay', handleCanPlay)
+      audioElement.play().then(() => {
+        set({ isPlaying: true })
+        startProgressTracking()
+      }).catch((error) => {
+        console.error('Ошибка воспроизведения:', error)
+        set({ isPlaying: false })
+      })
+    }
+
+    if (audioElement.readyState >= 3) {
+      audioElement.play().then(() => {
+        set({ isPlaying: true })
+        startProgressTracking()
+      }).catch((error) => {
+        console.error('Ошибка воспроизведения:', error)
+        set({ isPlaying: false })
+      })
+    } else {
+      audioElement.addEventListener('canplay', handleCanPlay, { once: true })
+    }
+  }
 
   const startProgressTracking = () => {
     if (progressInterval) clearInterval(progressInterval)
@@ -59,14 +153,23 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     isPlaying: false,
     currentTime: 0,
     duration: 0,
-    volume: 1,
+    volume: loadSavedVolume(),
     queue: [],
     currentIndex: 0,
     audioElement: null,
+    isNowPlayingOpen: false,
+    isShuffle: loadSavedShuffle(),
+    repeatMode: loadSavedRepeat(),
+    playbackRate: loadSavedPlaybackRate(),
+    sleepTimerMinutes: null,
+    sleepTimerId: null,
 
     setAudioElement: (element) => {
       set({ audioElement: element })
       if (element) {
+        // Синхронизируем громкость и скорость при подключении элемента
+        element.volume = get().volume
+        element.playbackRate = get().playbackRate
         element.addEventListener('loadedmetadata', () => {
           const duration = element.duration || 0
           set({ duration })
@@ -76,63 +179,49 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
           set({ currentTime: newTime })
         })
         element.addEventListener('ended', () => {
-          const { queue, currentIndex, audioElement } = get()
-          // Автоматически переключаемся на следующий трек только если есть очередь
-          if (queue.length > 0 && currentIndex < queue.length - 1) {
-            const newIndex = currentIndex + 1
-            const nextTrack = queue[newIndex]
-            
-            // Плавное переключение без паузы
-            if (audioElement && nextTrack) {
-              // Останавливаем текущее воспроизведение
-              audioElement.pause()
-              
-              // Устанавливаем новый трек
-              audioElement.src = nextTrack.audioUrl
-              audioElement.load()
-              
-              // Обновляем состояние
-              set({ 
-                currentIndex: newIndex,
-                currentTrack: nextTrack, 
-                currentTime: 0, 
-                isPlaying: false, // Временно false, чтобы избежать конфликтов
-                duration: 0
-              })
-              
-              // Ждём загрузки метаданных и запускаем воспроизведение
-              const handleCanPlay = () => {
-                audioElement.removeEventListener('canplay', handleCanPlay)
-                audioElement.play().then(() => {
-                  set({ isPlaying: true })
-                  startProgressTracking()
-                }).catch((error) => {
-                  console.error('Ошибка воспроизведения:', error)
-                  set({ isPlaying: false })
-                  stopProgressTracking()
-                })
-              }
-              
-              if (audioElement.readyState >= 3) {
-                // Если уже загружено, запускаем сразу
-                audioElement.play().then(() => {
-                  set({ isPlaying: true })
-                  startProgressTracking()
-                }).catch((error) => {
-                  console.error('Ошибка воспроизведения:', error)
-                  set({ isPlaying: false })
-                  stopProgressTracking()
-                })
-              } else {
-                // Иначе ждём загрузки
-                audioElement.addEventListener('canplay', handleCanPlay, { once: true })
-              }
-            }
-          } else {
-            // Если очередь закончилась, просто останавливаем
+          const { queue, currentIndex, audioElement, repeatMode, isShuffle } = get()
+
+          if (!audioElement || queue.length === 0) {
             set({ isPlaying: false, currentTime: 0 })
             stopProgressTracking()
+            return
           }
+
+          // repeat one
+          if (repeatMode === 'one') {
+            audioElement.currentTime = 0
+            audioElement.play().then(() => {
+              set({ isPlaying: true, currentTime: 0 })
+              startProgressTracking()
+            }).catch((error) => {
+              console.error('Ошибка воспроизведения:', error)
+              set({ isPlaying: false })
+              stopProgressTracking()
+            })
+            return
+          }
+
+          // shuffle next
+          if (isShuffle && queue.length > 1) {
+            const nextIndex = getRandomIndex(queue.length, currentIndex)
+            playTrackAtIndex(nextIndex)
+            return
+          }
+
+          // обычный переход или повтор всех
+          if (currentIndex < queue.length - 1) {
+            playTrackAtIndex(currentIndex + 1)
+            return
+          }
+
+          if (repeatMode === 'all') {
+            playTrackAtIndex(0)
+            return
+          }
+
+          // закончилась очередь
+          set({ isPlaying: false, currentTime: 0 })
+          stopProgressTracking()
         })
         element.addEventListener('play', () => {
           set({ isPlaying: true })
@@ -211,9 +300,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
     setVolume: (volume) => {
       const { audioElement } = get()
+      const clamped = Math.min(1, Math.max(0, volume))
       if (audioElement) {
-        audioElement.volume = volume
-        set({ volume })
+        audioElement.volume = clamped
+      }
+      set({ volume: clamped })
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('playerVolume', String(clamped))
       }
     },
 
@@ -225,106 +318,42 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
     },
 
     next: () => {
-      const { queue, currentIndex, audioElement } = get()
-      if (queue.length > 0 && currentIndex < queue.length - 1) {
-        const newIndex = currentIndex + 1
-        const nextTrack = queue[newIndex]
-        
-        // Плавное переключение без паузы
-        if (audioElement && nextTrack) {
-          // Останавливаем текущее воспроизведение
-          audioElement.pause()
-          stopProgressTracking()
-          
-          // Устанавливаем новый трек
-          audioElement.src = nextTrack.audioUrl
-          audioElement.load()
-          
-          // Обновляем состояние
-          set({ 
-            currentIndex: newIndex,
-            currentTrack: nextTrack, 
-            currentTime: 0, 
-            isPlaying: false, // Временно false
-            duration: 0
-          })
-          
-          // Ждём загрузки и запускаем
-          const handleCanPlay = () => {
-            audioElement.removeEventListener('canplay', handleCanPlay)
-            audioElement.play().then(() => {
-              set({ isPlaying: true })
-              startProgressTracking()
-            }).catch((error) => {
-              console.error('Ошибка воспроизведения:', error)
-              set({ isPlaying: false })
-            })
-          }
-          
-          if (audioElement.readyState >= 3) {
-            audioElement.play().then(() => {
-              set({ isPlaying: true })
-              startProgressTracking()
-            }).catch((error) => {
-              console.error('Ошибка воспроизведения:', error)
-              set({ isPlaying: false })
-            })
-          } else {
-            audioElement.addEventListener('canplay', handleCanPlay, { once: true })
-          }
-        }
+      const { queue, currentIndex, isShuffle, repeatMode } = get()
+      if (queue.length === 0) return
+
+      if (isShuffle && queue.length > 1) {
+        const nextIndex = getRandomIndex(queue.length, currentIndex)
+        playTrackAtIndex(nextIndex)
+        return
+      }
+
+      if (currentIndex < queue.length - 1) {
+        playTrackAtIndex(currentIndex + 1)
+        return
+      }
+
+      if (repeatMode === 'all') {
+        playTrackAtIndex(0)
       }
     },
 
     previous: () => {
-      const { queue, currentIndex, audioElement } = get()
-      if (queue.length > 0 && currentIndex > 0) {
-        const newIndex = currentIndex - 1
-        const prevTrack = queue[newIndex]
-        
-        // Плавное переключение без паузы
-        if (audioElement && prevTrack) {
-          // Останавливаем текущее воспроизведение
-          audioElement.pause()
-          stopProgressTracking()
-          
-          // Устанавливаем новый трек
-          audioElement.src = prevTrack.audioUrl
-          audioElement.load()
-          
-          // Обновляем состояние
-          set({ 
-            currentIndex: newIndex,
-            currentTrack: prevTrack, 
-            currentTime: 0, 
-            isPlaying: false, // Временно false
-            duration: 0
-          })
-          
-          // Ждём загрузки и запускаем
-          const handleCanPlay = () => {
-            audioElement.removeEventListener('canplay', handleCanPlay)
-            audioElement.play().then(() => {
-              set({ isPlaying: true })
-              startProgressTracking()
-            }).catch((error) => {
-              console.error('Ошибка воспроизведения:', error)
-              set({ isPlaying: false })
-            })
-          }
-          
-          if (audioElement.readyState >= 3) {
-            audioElement.play().then(() => {
-              set({ isPlaying: true })
-              startProgressTracking()
-            }).catch((error) => {
-              console.error('Ошибка воспроизведения:', error)
-              set({ isPlaying: false })
-            })
-          } else {
-            audioElement.addEventListener('canplay', handleCanPlay, { once: true })
-          }
-        }
+      const { queue, currentIndex, isShuffle, repeatMode } = get()
+      if (queue.length === 0) return
+
+      if (isShuffle && queue.length > 1) {
+        const prevIndex = getRandomIndex(queue.length, currentIndex)
+        playTrackAtIndex(prevIndex)
+        return
+      }
+
+      if (currentIndex > 0) {
+        playTrackAtIndex(currentIndex - 1)
+        return
+      }
+
+      if (repeatMode === 'all') {
+        playTrackAtIndex(queue.length - 1)
       }
     },
 
@@ -362,6 +391,70 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         queue: [],
         currentIndex: 0
       })
+    },
+
+    openNowPlaying: () => set({ isNowPlayingOpen: true }),
+    closeNowPlaying: () => set({ isNowPlayingOpen: false }),
+
+    toggleShuffle: () => {
+      const { isShuffle } = get()
+      const next = !isShuffle
+      set({ isShuffle: next })
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('playerShuffle', String(next))
+      }
+    },
+
+    cycleRepeat: () => {
+      const { repeatMode } = get()
+      const nextMode: RepeatMode = repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off'
+      set({ repeatMode: nextMode })
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('playerRepeat', nextMode)
+      }
+    },
+
+    setPlaybackRate: (rate) => {
+      const { audioElement } = get()
+      const clamped = Math.min(2, Math.max(0.5, rate))
+      if (audioElement) {
+        audioElement.playbackRate = clamped
+      }
+      set({ playbackRate: clamped })
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('playerPlaybackRate', String(clamped))
+      }
+    },
+
+    setSleepTimer: (minutes) => {
+      const { sleepTimerId } = get()
+      if (sleepTimerId) {
+        clearTimeout(sleepTimerId)
+      }
+
+      if (minutes === null || minutes <= 0) {
+        set({ sleepTimerMinutes: null, sleepTimerId: null })
+        return
+      }
+
+      const timeoutId = setTimeout(() => {
+        const { audioElement } = get()
+        if (audioElement) {
+          audioElement.pause()
+        }
+        get().pause()
+        set({ sleepTimerMinutes: null, sleepTimerId: null })
+      }, minutes * 60 * 1000)
+
+      set({ sleepTimerMinutes: minutes, sleepTimerId: timeoutId })
+    },
+
+    clearSleepTimer: () => {
+      const { sleepTimerId } = get()
+      if (sleepTimerId) {
+        clearTimeout(sleepTimerId)
+      }
+      set({ sleepTimerMinutes: null, sleepTimerId: null })
     },
   }
 })

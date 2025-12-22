@@ -1,15 +1,18 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search as SearchIcon, X, Play, Music2, Mic2 } from 'lucide-react'
+import { Search as SearchIcon, X, Play, Music2, Mic2, ArrowUpDown } from 'lucide-react'
 import { tracksApi } from '../api/tracks'
 import { podcastsApi } from '../api/podcasts'
 import { usePlayerStore } from '../store/playerStore'
 import { useNavigate } from 'react-router-dom'
 import FavoriteButton from '../components/FavoriteButton'
 
+type SortOption = 'relevance' | 'title-asc' | 'title-desc' | 'artist-asc' | 'artist-desc'
+
 export default function Search() {
   const [query, setQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'all' | 'tracks' | 'podcasts'>('all')
+  const [sortBy, setSortBy] = useState<SortOption>('relevance')
   const navigate = useNavigate()
   const { play, currentTrack, isPlaying, togglePlay, setQueue } = usePlayerStore()
 
@@ -23,17 +26,49 @@ export default function Search() {
     queryFn: podcastsApi.getAll,
   })
 
-  const filteredTracks = tracks?.filter(
-    (track) =>
-      track.title.toLowerCase().includes(query.toLowerCase()) ||
-      track.artist.toLowerCase().includes(query.toLowerCase())
-  )
+  const filteredTracks = useMemo(() => {
+    if (!tracks) return []
+    let filtered = tracks.filter(
+      (track) =>
+        track.title.toLowerCase().includes(query.toLowerCase()) ||
+        track.artist.toLowerCase().includes(query.toLowerCase())
+    )
 
-  const filteredPodcasts = podcasts?.filter(
-    (podcast) =>
-      podcast.title.toLowerCase().includes(query.toLowerCase()) ||
-      podcast.author.toLowerCase().includes(query.toLowerCase())
-  )
+    // Сортировка
+    if (sortBy === 'title-asc') {
+      filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title))
+    } else if (sortBy === 'title-desc') {
+      filtered = [...filtered].sort((a, b) => b.title.localeCompare(a.title))
+    } else if (sortBy === 'artist-asc') {
+      filtered = [...filtered].sort((a, b) => a.artist.localeCompare(b.artist))
+    } else if (sortBy === 'artist-desc') {
+      filtered = [...filtered].sort((a, b) => b.artist.localeCompare(a.artist))
+    }
+
+    return filtered
+  }, [tracks, query, sortBy])
+
+  const filteredPodcasts = useMemo(() => {
+    if (!podcasts) return []
+    let filtered = podcasts.filter(
+      (podcast) =>
+        podcast.title.toLowerCase().includes(query.toLowerCase()) ||
+        podcast.author.toLowerCase().includes(query.toLowerCase())
+    )
+
+    // Сортировка
+    if (sortBy === 'title-asc') {
+      filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title))
+    } else if (sortBy === 'title-desc') {
+      filtered = [...filtered].sort((a, b) => b.title.localeCompare(a.title))
+    } else if (sortBy === 'artist-asc') {
+      filtered = [...filtered].sort((a, b) => a.author.localeCompare(b.author))
+    } else if (sortBy === 'artist-desc') {
+      filtered = [...filtered].sort((a, b) => b.author.localeCompare(a.author))
+    }
+
+    return filtered
+  }, [podcasts, query, sortBy])
 
   const handlePlayTrack = (track: any, allTracks: any[]) => {
     if (currentTrack?.id === track.id) {
@@ -80,21 +115,46 @@ export default function Search() {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-              activeTab === tab.id
-                ? 'bg-gradient-accent text-white shadow-glow'
-                : 'bg-dark-card text-dark-text-secondary hover:text-white hover:bg-dark-hover'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Tabs and Sort */}
+      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div className="flex gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                activeTab === tab.id
+                  ? 'bg-gradient-accent text-white shadow-glow'
+                  : 'bg-dark-card text-dark-text-secondary hover:text-white hover:bg-dark-hover'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {query && (filteredTracks.length > 0 || filteredPodcasts.length > 0) && (
+          <div className="relative">
+            <button
+              onClick={() => {
+                const options: SortOption[] = ['relevance', 'title-asc', 'title-desc', 'artist-asc', 'artist-desc']
+                const currentIndex = options.indexOf(sortBy)
+                setSortBy(options[(currentIndex + 1) % options.length])
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-dark-card text-dark-text-secondary hover:text-white hover:bg-dark-hover transition-all"
+              title="Сортировка"
+            >
+              <ArrowUpDown className="w-4 h-4" />
+              <span className="hidden sm:inline">
+                {sortBy === 'relevance' && 'По релевантности'}
+                {sortBy === 'title-asc' && 'Название А-Я'}
+                {sortBy === 'title-desc' && 'Название Я-А'}
+                {sortBy === 'artist-asc' && 'Исполнитель А-Я'}
+                {sortBy === 'artist-desc' && 'Исполнитель Я-А'}
+              </span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results */}
