@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { usePlayerStore } from '../store/playerStore'
-import { Play, Pause, SkipBack, SkipForward, ChevronDown, Info, Heart, Timer, Gauge } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, ChevronDown, Info, Timer, Gauge } from 'lucide-react'
 import { formatTime } from '../utils/formatTime'
 import FavoriteButton from './FavoriteButton'
 
